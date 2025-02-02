@@ -1,0 +1,10 @@
+const c=10;
+var i;
+begin
+i:=0;
+while i<c do
+begin
+!i;
+i:=i+1
+end
+end.

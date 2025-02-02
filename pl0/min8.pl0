@@ -1,0 +1,16 @@
+const c=2;
+var a,b,m;
+procedure p;
+var x;
+begin
+x:=a;
+if b>x then
+x:=b;
+m:=x
+end;
+begin
+?a;
+?b;
+call p;
+!m
+end.

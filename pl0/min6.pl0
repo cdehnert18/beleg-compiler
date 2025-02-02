@@ -1,0 +1,10 @@
+const c=2;
+var a,b,m;
+begin
+    ?a;
+    ?b;
+    m:=a;
+    if b>m then
+        m:=b;
+    !m
+end.
