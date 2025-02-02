@@ -28,6 +28,7 @@ typedef struct BOGEN {
 
 extern Bogen gBlock[];
 extern Bogen gStat[];
+extern Bogen gLog[];
 extern Bogen gCond[];
 extern Bogen gFact[];
 extern Bogen gExpr[];
@@ -44,12 +45,12 @@ Bogen gStat[]= {
     /* 1 */ {BgSymbol,      {(unsigned long)128/*ERG*/},    NULL, 2,    0},
     /* 2 */ {BgGraph,       {(unsigned long)gExpr},         st2, 22,   0},
     /* 3 */ {BgSymbol,      {(unsigned long)136/*IF*/},     NULL, 4,    7},
-    /* 4 */ {BgGraph,       {(unsigned long)gCond},         /*st3*/NULL, 5,    0},
-    /* 5 */ {BgSymbol,      {(unsigned long)139/*THE*/},    lo, 6,    0},
+    /* 4 */ {BgGraph,       {(unsigned long)gLog},         /*st3*/NULL, 5,    0},
+    /* 5 */ {BgSymbol,      {(unsigned long)139/*THE*/},    lo1, 6,    0},
     /* 6 */ {BgGraph,       {(unsigned long)gStat},         st4, 22,   0},
     /* 7 */ {BgSymbol,      {(unsigned long)141/*WHI*/},    st5, 8,    11},
-    /* 8 */ {BgGraph,       {(unsigned long)gCond},         st6/*NULL??*/, 9,    0},
-    /* 9 */ {BgSymbol,      {(unsigned long)134/*DO*/},     lo, 10,   0},
+    /* 8 */ {BgGraph,       {(unsigned long)gLog},          /*st6*/NULL, 9,    0},
+    /* 9 */ {BgSymbol,      {(unsigned long)134/*DO*/},     lo2, 10,   0},
     /* 10*/ {BgGraph,       {(unsigned long)gStat},         st7, 22,   0},
     /* 11*/ {BgSymbol,      {(unsigned long)131/*BEG*/},    NULL, 12,   15},
     /* 12*/ {BgGraph,       {(unsigned long)gStat},         NULL, 13,   0},
@@ -88,6 +89,15 @@ Bogen gBlock[]= {
     /* 19*/ {BgGraphEnde,   {(unsigned long)0},             NULL, 0,    0}
 };
 
+Bogen gLog[]= {
+    /* 0*/  {BgGraph,       {(unsigned long)gCond},         NULL, 1,    0},
+    /* 1*/  {BgSymbol,      {(unsigned long)/*AND*/142},    and, 2,    3},
+    /* 2*/  {BgGraph,       {(unsigned long)gCond},         NULL, 1,    0},
+    /* 3*/  {BgNichts,      {(unsigned long)0},             NULL, 4,    0},
+    /* 4*/  {BgSymbol,      {(unsigned long)/*OR*/143},     or, 0,    5},
+    /* 5*/  {BgGraphEnde,   {(unsigned long)0},             NULL, 0,    0},
+};
+
 Bogen gCond[]= {
     /* 0*/  {BgGraph,       {(unsigned long)gExpr},         NULL, 1,    8},
     /* 1*/  {BgSymbol,      {(unsigned long)'='},           co2, 7,    2},
@@ -96,13 +106,10 @@ Bogen gCond[]= {
     /* 4*/  {BgSymbol,      {(unsigned long)'>'},           co6, 7,    5},
     /* 5*/  {BgSymbol,      {(unsigned long)129/*LET*/},    co5, 7,    6},
     /* 6*/  {BgSymbol,      {(unsigned long)130/*GRT*/},    co7, 7,    0},
-    /* 7*/  {BgGraph,       {(unsigned long)gExpr},         co8, 11,   0},
+    /* 7*/  {BgGraph,       {(unsigned long)gExpr},         co8, 10,   0},
     /* 8*/  {BgSymbol,      {(unsigned long)137/*ODD*/},    NULL, 9,    0},
-    /* 9*/  {BgGraph,       {(unsigned long)gExpr},         co1, 11,   0},
-    /* 10*/ {BgGraphEnde,   {(unsigned long)0},             NULL, 0,    0},
-    // Erweiterung
-    /* 11*/ {BgSymbol,       {(unsigned long)/*AND*/142},   and, 0,   12},
-    /* 12*/ {BgSymbol,       {(unsigned long)/*OR*/143},    or, 0,   10}
+    /* 9*/  {BgGraph,       {(unsigned long)gExpr},         co1, 10,   0},
+    /* 10*/ {BgGraphEnde,   {(unsigned long)0},             NULL, 0,    0}
 };
 
 Bogen gTerm[]= {
@@ -160,6 +167,8 @@ void printMorpheme(morphem* m) {
                     case 139: printf("Symbol: THEN"); break;
                     case 140: printf("Symbol: VAR"); break;
                     case 141: printf("Symbol: WHILE"); break;
+                    case 142: printf("Symbol: AND"); break;
+                    case 143: printf("Symbol: OR"); break;
                 }
                 printf("(Code: %d)\n", m->Val.Symbol);
             } else {
@@ -189,24 +198,18 @@ int parse(Bogen* pGraph) {
         switch(pBog->bgTyp) {
             case BgNichts:
                 succ = 1;
-                //printf("Parser: nichts\n");
                 break;
             case BgSymbol:
                 succ = (Morph.Val.Symbol == pBog->BgX.symbol);
-                //printf("%d %d %d\n", succ, Morph.Val.Symbol, pBog->BgX.symbol);
-                //printf("Parser: Symbol\n");
                 break;
             case BgMorphem:
                 succ = (Morph.morphemeCode == (MorphemeCode)pBog->BgX.morphemeCode);
-                //printf("Parser: Morphem\n");
                 break;
             case BgGraph:
                 succ = parse(pBog->BgX.graph);
-                //printf("Parser: Graph\n");
                 break;
             /* Ende erreichet - Erfolg */
             case BgGraphEnde:
-                //printf("Parser: Graph Ende\n");
                 return 1;
         }
         if ((succ == 1) && pBog->fx != NULL) succ = pBog->fx();
@@ -219,7 +222,6 @@ int parse(Bogen* pGraph) {
         /* Morphem formal akzeptiert (eaten) */
         else {
             if (pBog->bgTyp & BgSymbol || pBog->bgTyp & BgMorphem) {
-                //Lex();
                 morphem* m = Lex();
                 if (m->morphemeCode == mcEmpty) {
                     printf("Parser: End of File reached.\n");
@@ -245,15 +247,6 @@ int main(int argc, char* argv[]) {
 
     if(openCodeFile("output.pl0") == -1) exit(1);
 
-    /*
-    while (1) {
-        morphem* m = Lex();
-        if (m->morphemeCode == mcEmpty) {
-            printf("End of File reached.\n");
-            break;
-        }
-        printMorpheme(m);
-    }*/
     printf("Output Parser: %d\n", parse(gProg));
     closeCodeFile();
     return 0;

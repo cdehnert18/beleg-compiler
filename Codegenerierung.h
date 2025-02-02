@@ -49,4 +49,5 @@ int co8();
 
 int and();
 int or();
-int lo();
+int lo1();
+int lo2();

@@ -5,7 +5,7 @@
 #include "Codegenerierung.h"
 #include "Namensliste.h"
 #include "Lexer.h"
-#include "Label.h"
+#include "Stack.h"
 
 char* vCode;            /* dynamischen Bereich des Codes */
 unsigned short pc;      /* aktuelle Position im Code (Programmcounter)*/
@@ -212,7 +212,7 @@ int bl6() {
   pc = 0;
   LenCode = 1;
   // Codelänge (temp 0), ProzedurID, Länge Variablenblock
-  code(entryProc, 0, currentProc->IdxProc+, currentProc->SpzzVar);
+  code(entryProc, 0, currentProc->IdxProc, currentProc->SpzzVar);
   return 1;
 }
 
@@ -259,13 +259,13 @@ int st2() {
 }
 
 int st3() {
-  pushLabel(pc + 1);
+  stackPush(&labelStack, pc + 1);
   code(jnot, 0);
   return 1;
 }
 
 int st4() {
-  long iJmp = popLabel();
+  long iJmp = stackPop(&labelStack);;
   unsigned short relAdd = pc - iJmp;
 
   vCode[iJmp] = (unsigned char)((relAdd - 2) & 0xff);
@@ -275,20 +275,20 @@ int st4() {
 }
 
 int st5() {
-  pushLabel(pc + 1);
+  stackPush(&labelStack, pc + 1);
   return 1;
 }
 
 int st6() {
-  pushLabel(pc + 1);
+  stackPush(&labelStack, pc + 1);
   code(jnot, 0);
   return 1;
 }
 
 int st7() {
   
-  long labelJMPN = popLabel();
-  long labelJMP = popLabel();
+  long labelJMPN = stackPop(&labelStack);
+  long labelJMP = stackPop(&labelStack);
   code(jmp, (short)labelJMP - (pc + 4));
   
   unsigned short relAdd = pc - labelJMPN;
@@ -559,20 +559,29 @@ void addToConstBlock(int32_t value) {
 }
 
 int and() {
-  pushLogic(1);
+  stackPush(&logicStack, 1);
   return 1;
 }
 
 int or() {
-  pushLogic(2);
+  stackPush(&logicStack, 2); 
   return 1;
 }
 
-int lo() {
+int lo1() {
   long l;
-  while((l = popLogic()) != 0) {
+  while((l = stackPop(&logicStack)) != 0) {
     if(l == 1) code(OpMult);
     else code(OpAdd);
   }
   return st3();
+}
+
+int lo2() {
+  long l;
+  while((l = stackPop(&logicStack)) != 0) {
+    if(l == 1) code(OpMult);
+    else code(OpAdd);
+  }
+  return st6();
 }

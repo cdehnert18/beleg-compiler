@@ -14,11 +14,12 @@ tProc* currentProc = &hauptProgramm;
 int procCounter = 1;
 
 tBez* createBez(char* pBez) {
+    
     tBez* bezeichner = (tBez* )malloc(sizeof(tBez));
     if(bezeichner == NULL) {
-        //fprintf(stderr, "Could not allocate memory\n");
         return NULL;
     }
+    
     // pNext des Vorgängers setzen 
     if(currentProc->pLBez == NULL) {
         currentProc->pLBez = bezeichner;
@@ -34,11 +35,11 @@ tBez* createBez(char* pBez) {
     bezeichner->pNext = NULL;
     bezeichner->idxProc = currentProc->IdxProc;
     bezeichner->pObj = NULL;
+    
     if(pBez == NULL) bezeichner->pName = NULL;
     else {
         bezeichner->pName = malloc(strlen(pBez) + 1);
         if (bezeichner->pName == NULL) {
-            //fprintf(stderr, "Could not allocate memory for pName\n");
             return NULL;
         }
         strcpy(bezeichner->pName, pBez);
@@ -47,27 +48,29 @@ tBez* createBez(char* pBez) {
 }
 
 tConst* createConst(int32_t Val) {
-    tConst* cons = (tConst* )malloc(sizeof(tConst));
-    if(cons == NULL) {
-        //fprintf(stderr, "Could not allocate memory\n");
+    
+    tConst* cons = (tConst*)malloc(sizeof(tConst));
+    if (cons == NULL) {
         return NULL;
     }
-    // pObj des letzten Bezeichners setzen 
-    if(currentProc->pLBez == NULL) {
-        //fprintf(stderr, "Could not find free bez\n");
+
+    if (currentProc == NULL || currentProc->pLBez == NULL) {
+        fprintf(stderr, "Error: Invalid current process or missing identifier list\n");
+        free(cons);
         return NULL;
-    } else {
-        tBez* it = currentProc->pLBez;
-        while(it->pNext != NULL) {
-            it = it->pNext;
-        }
-        if(it->pObj == NULL) {
-            it->pObj = cons;
-        } else {
-            //fprintf(stderr, "Could not find free bez\n");
-            return NULL;
-        }
     }
+
+    tBez* currentBez = currentProc->pLBez;
+    while (currentBez->pNext != NULL) {
+        currentBez = currentBez->pNext;
+    }
+
+    if (currentBez->pObj != NULL) {
+        fprintf(stderr, "Error: Last identifier already in use\n");
+        free(cons);
+        return NULL;
+    }
+    currentBez->pObj = cons;
 
     cons->Kz = Konstante;
     cons->Val = Val;
@@ -75,85 +78,76 @@ tConst* createConst(int32_t Val) {
     return cons;
 }
 
-tConst* searchConst(int32_t Val) {
-    tBez* it = currentProc->pLBez;
-    if(it == NULL) {
-        //fprintf(stderr, "Could not find const\n");
+
+tConst* searchConst(const int32_t Val) {
+
+    if (currentProc == NULL || currentProc->pLBez == NULL) {
         return NULL;
     }
-    
-    if(it->Kz == Konstante) {
-        tConst* cons = (tConst* )it->pObj;
-        if(cons == NULL) return NULL;
-        if(cons->Val == Val) {
-            return cons;
-        }
-    }
-    while(it->pNext != NULL) {
-        it = it->pNext;
-        tConst* cons = (tConst* )it->pObj;
-        if(cons->Kz == Konstante) {
-            if(cons->Val == Val) {
-                return cons;
+
+    // Iteration durch die Bezeichnerliste
+    for (tBez* currentBez = currentProc->pLBez; currentBez != NULL; currentBez = currentBez->pNext) {
+        // Überprüfen, ob der Bezeichner eine Konstante ist
+        if (currentBez->Kz == Konstante && currentBez->pObj != NULL) {
+            tConst* constant = (tConst*)currentBez->pObj;
+
+            if (constant->Val == Val) {
+                return constant;
             }
         }
     }
-    
+
     return NULL;
 }
 
 tVar* createVar(void) {
     tVar* var = (tVar* )malloc(sizeof(tVar));
     if(var == NULL) {
-        //fprintf(stderr, "Could not allocate memory\n");
         return NULL;
     }
-    // pObj des letzten Bezeichners setzen 
-    if(currentProc->pLBez == NULL) {
-        //fprintf(stderr, "Could not find free bez\n");
-        return NULL;
-    } else {
-        tBez* it = currentProc->pLBez;
-        while(it->pNext != NULL) {
-            it = it->pNext;
-        }
-        if(it->pObj == NULL) {
-            it->pObj = var;
-        } else {
-            //fprintf(stderr, "Could not find free bez\n");
-            return NULL;
-        }
+
+    // Letztes Element in der Bezeichnerliste finden
+    tBez* currentBez = currentProc->pLBez;
+    while (currentBez->pNext != NULL) {
+        currentBez = currentBez->pNext;
     }
+
+    // Überprüfung: Kann pObj gesetzt werden?
+    if (currentBez->pObj != NULL) {
+        fprintf(stderr, "No free identifier available for variable\n");
+        free(var); // Speicher freigeben
+        return NULL;
+    }
+    currentBez->pObj = var;
 
     var->Kz = Variable;
     currentProc->SpzzVar += VERARBEITUNGSBREITE;
-    var->Dspl = currentProc->SpzzVar - 4;
+    var->Dspl = currentProc->SpzzVar - VERARBEITUNGSBREITE;
 
     return var;
 }
 
 tProc* createProc(tProc* pParent) {
-    tProc* proc = (tProc* )malloc(sizeof(tProc));
-    if(proc == NULL) {
-        //fprintf(stderr, "Could not allocate memory\n");
+    
+    if (currentProc == NULL || currentProc->pLBez == NULL) {
         return NULL;
     }
-    // pObj des letzten Bezeichners setzen 
-    if(currentProc->pLBez == NULL) {
-        //fprintf(stderr, "Could not find free bez\n");
-        return NULL;
-    } else {
-        tBez* it = currentProc->pLBez;
-        while(it->pNext != NULL) {
-            it = it->pNext;
-        }
-        if(it->pObj == NULL) {
-            it->pObj = proc;
-        } else {
-            //fprintf(stderr, "Could not find free bez\n");
-            return NULL;
-        }
+
+    tProc* proc = (tProc*)malloc(sizeof(tProc));
+    if (proc == NULL) {
+        return NULL; 
     }
+
+    tBez* it = currentProc->pLBez;
+    while (it->pNext != NULL) {
+        it = it->pNext;
+    }
+
+    if (it->pObj != NULL) {
+        free(proc);
+        return NULL;
+    }
+    it->pObj = proc;
 
     proc->Kz = Prozedur;
     proc->IdxProc = procCounter;
@@ -169,46 +163,16 @@ tProc* createProc(tProc* pParent) {
 }
 
 tBez* searchBez(tProc* pProc, char* pBez) {
-    tBez* it = pProc->pLBez;
-    if(it == NULL) {
-        //fprintf(stderr, "Could not find bez\n");
+    if (pProc == NULL || pBez == NULL) {
         return NULL;
     }
-    if(strcmp(pBez, it->pName) == 0) return it;
-    while(it->pNext != NULL) {
-        it = it->pNext;
-        if(strcmp(pBez, it->pName) == 0) return it;
-    }
-    
-    return NULL;
-}
-
-/*tBez* searchBezGlobal(char* pBez) {
-    tProc* itProc = currentProc;
-    tBez* itBez = itProc->pLBez;
-    
-    while(itProc != NULL) {
-        if(itBez == NULL) {
-            itProc = itProc->pParent;
-            itBez = itProc->pLBez;
-        } else {
-            if(itBez->pName != NULL) {
-                if(strcmp(pBez, itBez->pName) == 0) return itBez;    
-            }
-            
-            while(itBez->pNext != NULL) {
-                itBez = itBez->pNext;
-                if(itBez->pName != NULL) {
-                    if(strcmp(pBez, itBez->pName) == 0) return itBez;
-                }
-            }
-            itProc = itProc->pParent;
-            itBez = itProc->pLBez;
+    for (tBez* it = pProc->pLBez; it != NULL; it = it->pNext) {
+        if (strcmp(pBez, it->pName) == 0) {
+            return it;
         }
     }
-    
     return NULL;
-}*/
+}
 
 tBez* searchBezGlobal(char* pBez) {
     tProc* itProc = currentProc;
@@ -218,16 +182,15 @@ tBez* searchBezGlobal(char* pBez) {
 
         while (itBez != NULL) {
             if (itBez->pName != NULL && strcmp(pBez, itBez->pName) == 0) {
-                return itBez;  // Gefunden
+                return itBez;
             }
             itBez = itBez->pNext;
         }
 
-        // Zum Elternprozess wechseln
         itProc = itProc->pParent;
     }
 
-    return NULL;  // Nicht gefunden
+    return NULL;
 }
 
 void clearCurrentProc() {

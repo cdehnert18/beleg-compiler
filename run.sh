@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Parser bauen
-gcc -o Parser Parser.c Lexer.c Namensliste.c Codegenerierung.c Label.c -Wall > /dev/null 2>&1
+gcc -o Parser Parser.c Stack.c Namensliste.c Codegenerierung.c Lexer.c -Wall > /dev/null 2>&1
 if [ $? -ne 0 ]; then
   echo "Fehler beim Bauen des Parsers. Skript wird beendet."
   exit 1
